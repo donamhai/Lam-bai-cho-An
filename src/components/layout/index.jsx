@@ -9,6 +9,7 @@ import Sidebar from "../Sidebar";
 import { Dashboard } from "../../features/Dashboard";
 import { getAllTask } from "../../features/Todolist/todoSlice";
 import { useDispatch } from "react-redux";
+import Blockchain from "../../features/Blockchain";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -42,7 +43,6 @@ function Layout(props) {
     // init get all task after login
     (() => {
       try {
-        console.log(1);
         const action = getAllTask();
         dispatch(action);
       } catch (error) {
@@ -69,6 +69,10 @@ function Layout(props) {
 
           <Route path="/admin/todolist">
             <TodoList />
+          </Route>
+
+          <Route path="/admin/blockchain">
+            <Blockchain />
           </Route>
         </Switch>
       </Box>
