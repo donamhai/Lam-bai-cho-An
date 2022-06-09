@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Button, makeStyles, Typography } from "@material-ui/core";
 import { ethers, utils } from "ethers";
-// import { abi } from "../../ERC20.json";
+import { abi } from "../../TTVToken-ABI.json";
 
 Blockchain.propTypes = {};
 
@@ -13,13 +13,20 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.palette.secondary.main,
     size: "large",
   },
+  text: {
+    fontSize: "30px",
+    fontWeight: "bold",
+  },
 }));
 
 function Blockchain(props) {
   const [currentBalance, setCurentBalance] = useState(0);
-
+  const [currentRandomAddress, setSurrentRandomAddress] = useState("");
+  const [eventValue, setEventValue] = useState([]);
+  const [block, setBlock] = useState([]);
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const signer = provider.getSigner();
+  const myAddress = "0x36276A23fD22FCBe8b9f68Cf10c0f3882A29194c";
   const TtvContract = new ethers.Contract(
     "0x50FE8A546037986C281Aa03451E2eB3B555A7141",
     [
@@ -315,6 +322,16 @@ function Blockchain(props) {
     signer
   );
 
+  const filterTo = TtvContract.filters.Transfer(null, myAddress);
+  const filterFrom = TtvContract.filters.Transfer(myAddress, null);
+
+  TtvContract.on(filterTo, (from, to, amount) => {
+    setEventValue([from, to, ethers.utils.formatEther(amount)]);
+  });
+  TtvContract.on(filterFrom, (from, to, amount) => {
+    setEventValue([from, to, ethers.utils.formatEther(amount)]);
+  });
+
   const classes = useStyles();
 
   async function connectToWallet() {
@@ -394,8 +411,7 @@ function Blockchain(props) {
   async function randomWallet() {
     const wallet = ethers.Wallet.createRandom();
     wallet.connect(provider);
-    console.log(await wallet.getBalance);
-
+    setSurrentRandomAddress(wallet.address);
     if (!wallet) {
       return {
         address: "",
@@ -420,6 +436,28 @@ function Blockchain(props) {
     };
   }
 
+  async function sendToken() {
+    try {
+      const amountWei = utils.parseUnits("2000", 18);
+
+      const tx = await TtvContract.transfer(currentRandomAddress, amountWei);
+      console.log(tx);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  async function filterDataEvent() {
+    const result = await TtvContract.queryFilter(
+      filterFrom,
+      20043244,
+      20043344
+    );
+    console.log(result);
+    setBlock(result);
+  }
+
+  const [from, to, amount] = eventValue;
+
   return (
     <Box>
       <Box>
@@ -438,9 +476,36 @@ function Blockchain(props) {
         <Button className={classes.root} onClick={randomWallet}>
           Create Random wallet
         </Button>
+        <Button className={classes.root} onClick={sendToken}>
+          Send 2000 TTV token
+        </Button>
+        <Button className={classes.root} onClick={filterDataEvent}>
+          Filter data event
+        </Button>
       </Box>
       <Box>
-        <Typography>TTV Token : {currentBalance}</Typography>
+        {/* <Typography>TTV Token : {currentBalance}</Typography> */}
+        <Typography>Random Wallet address : {currentRandomAddress}</Typography>
+        <Typography>
+          ---------------------------------------------------------
+        </Typography>
+        <Typography className={classes.text}>Event Transfer</Typography>
+        <Box>
+          <Typography>From: {from}</Typography>
+          <Typography>To: {to}</Typography>
+          <Typography>Amount: {amount}</Typography>
+        </Box>
+        <Typography>
+          ---------------------------------------------------------
+        </Typography>
+        <Typography className={classes.text}>Filter data event</Typography>
+        <Box>
+          {block.map((x) => (
+            <Typography key={x.blockNumber}>
+              BlockHash: {x.blockHash} - BlockNumber: {x.blockNumber}
+            </Typography>
+          ))}
+        </Box>
       </Box>
     </Box>
   );
